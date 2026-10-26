@@ -1,6 +1,6 @@
 # E-commerce Streaming Pipeline on Databricks Lakehouse
 
-![CI/CD](https://github.com/<thehaseebi>/ecom-lakehouse/actions/workflows/ci-cd.yml/badge.svg)
+![CI/CD](https://github.com/thehaseebi/ecom-lakehouse/actions/workflows/ci-cd.yml/badge.svg)
 
 An end-to-end, production-style data pipeline that ingests e-commerce orders,
 customer change data (CDC), and product data incrementally, processes them
