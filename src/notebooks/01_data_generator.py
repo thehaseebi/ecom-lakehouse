@@ -1,6 +1,5 @@
 # Databricks notebook source
 # MAGIC %pip install faker
-# MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
 
