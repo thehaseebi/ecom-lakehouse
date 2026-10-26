@@ -1,0 +1,66 @@
+bundle:
+  name: ecom_lakehouse
+
+variables:
+  schema:
+    default: ecom_dev
+
+resources:
+  pipelines:
+    ecom_pipeline:
+      name: ecom_pipeline
+      catalog: workspace
+      schema: ${var.schema}
+      serverless: true
+      configuration:
+        raw_path: /Volumes/workspace/${var.schema}/raw
+        bundle.sourcePath: ${workspace.file_path}/src
+      libraries:
+        - file: { path: ./src/pipelines/bronze.py }
+        - file: { path: ./src/pipelines/silver.py }
+        - file: { path: ./src/pipelines/silver_customers.py }
+        - file: { path: ./src/pipelines/gold.py }
+
+  jobs:
+    ecom_daily_job:
+      name: ecom_daily_job
+      timeout_seconds: 1800
+      email_notifications:
+        on_failure: [ "${workspace.current_user.userName}" ]
+      schedule:
+        quartz_cron_expression: "0 0 * * * ?"
+        timezone_id: Asia/Karachi
+        pause_status: PAUSED
+      tasks:
+        - task_key: generate_data
+          max_retries: 2
+          min_retry_interval_millis: 60000
+          notebook_task:
+            notebook_path: ./src/notebooks/01_data_generator.py
+            base_parameters: { schema: "${var.schema}" }
+
+        - task_key: run_pipeline
+          depends_on: [ { task_key: generate_data } ]
+          max_retries: 2
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.ecom_pipeline.id}
+
+        - task_key: quality_checks
+          depends_on: [ { task_key: run_pipeline } ]
+          notebook_task:
+            notebook_path: ./src/notebooks/02_quality_checks.py
+            base_parameters: { schema: "${var.schema}" }
+
+targets:
+  dev:
+    mode: development
+    default: true
+    variables:
+      schema: ecom_dev
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/prod
+    variables:
+      schema: ecom
